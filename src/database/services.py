@@ -1,6 +1,6 @@
 from abc import ABC
 from typing import Any, Sequence, Type
-from sqlalchemy import insert, select, update, delete
+from sqlalchemy import and_, insert, select, update, delete
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -230,5 +230,71 @@ class UserService(Base):
             "password": self._password_hasher.hash(user.password)}
         return await self._update(models.User.id == user.id, **payload)
 
-    async def grant_admin_privileges(self, user: schemas.UserPrivileges) -> models.User:
-        return await self._update(models.User.email == user.email, **user.model_dump())
+
+class OrderService(Base):
+    model = models.Order
+
+    async def create_order(self, order: schemas.OrderCreate) -> models.Order:
+        new_order = await self._insert(**order.model_dump(exclude_unset=True, exclude_none=True, exclude={"items"}))
+        items = order.model_dump(
+            exclude_unset=True, exclude_none=True).get("items")
+
+        for item in items:
+            item["order_id"] = new_order.id
+            async with self.session as session:
+                stmt = insert(models.OrderItem).values(**item)
+                await session.execute(stmt)
+
+                # Update the inventory table
+                inventory_query = update(models.Inventory).where(and_(models.Inventory.product_id == item["product_id"], models.Inventory.size == item["size"])).values(
+                    quantity=models.Inventory.quantity - item["quantity"])
+
+                await session.execute(inventory_query)
+                await session.commit()
+
+        return await self.get_order_by_id(id=new_order.id)
+
+    async def get_order_by_id(self, id: int) -> models.Order:
+        async with self.session as session:
+            stmt = select(models.Order).where(models.Order.id ==
+                                              id).options(selectinload(models.Order.items))
+            result = await session.scalar(stmt)
+        return result
+
+    async def return_order(self, order: schemas.OrderUpdate) -> models.Order:
+        order_data = order.model_dump(
+            exclude_unset=True, exclude_none=True, exclude={"items"})
+        items = order.model_dump(
+            exclude_unset=True, exclude_none=True).get("items")
+
+        for item in items:
+            async with self.session as session:
+                # Update the inventory table
+                inventory_query = update(models.Inventory).where(and_(models.Inventory.product_id == item["product_id"], models.Inventory.size == item["size"])).values(
+                    quantity=models.Inventory.quantity + item["quantity"])
+
+                await session.execute(inventory_query)
+                await session.commit()
+        order_data["returned"] = True
+        updated_order = await self._update(models.Order.id == order.id, **order_data)
+        return await self.get_order_by_id(id=updated_order.id)
+
+    async def update_order_info(self, order: schemas.OrderUpdate) -> models.Order:
+        order_data = order.model_dump(
+            exclude_unset=True, exclude_none=True, exclude={"items"})
+        updated_order = await self._update(models.Order.id == order.id, **order_data)
+        return await self.get_order_by_id(id=updated_order.id)
+
+    async def get_customer_orders(self, phone_numb: str) -> Sequence[models.Order]:
+        async with self.session as session:
+            stmt = select(models.Order).where(
+                models.Order.telephone == phone_numb)
+            result = await session.scalars(stmt)
+        return result.all()
+
+    async def get_all_orders(self, offset: int, limit: int) -> Sequence[models.Order]:
+        async with self.session as session:
+            stmt = select(models.Order).options(
+                selectinload(models.Order.items)).offset(offset).limit(limit)
+            result = await session.scalars(stmt)
+        return result.all()

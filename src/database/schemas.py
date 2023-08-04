@@ -21,12 +21,14 @@ class ContentResponse(ContentUpdate):
     updated_at: datetime = None
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 ############
 # Category #
 ############
+
+
 class CategoryCreate(BaseModel):
     name: str
 
@@ -40,12 +42,14 @@ class CategoryResponse(CategoryUpdate):
     updated_at: datetime = None
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 #######
 # Sub #
 #######
+
+
 class SubCreate(BaseModel):
     name: str
 
@@ -59,12 +63,14 @@ class SubResponse(SubUpdate):
     updated_at: datetime = None
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 #############
 # Inventory #
 #############
+
+
 class InventoryDTO(BaseModel):
     id: Optional[int]
     product_id: Optional[int]
@@ -77,12 +83,14 @@ class InventoryResponse(BaseModel):
     quantity: int
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 ###########
 # Product #
 ###########
+
+
 class ProductCreate(BaseModel):
     name: str = "Unnamed product"
     article: str
@@ -108,16 +116,71 @@ class ProductResponse(ProductUpdate):
     updated_at: datetime = None
 
     class Config:
-        orm_mode = True
+        from_attributes = True
+
+
+##############
+# Order Item #
+##############
+
+
+class OrderItemCreate(BaseModel):
+    product_id: int
+    size: str
+    quantity: int
+    price: float
+
+
+class OrderItemUpdate(OrderItemCreate):
+    order_id: int
+
+
+class OrderItemResponse(OrderItemUpdate):
+    created_at: datetime = None
+    updated_at: datetime = None
+
+    class Config:
+        from_attributes = True
+
+
+##############
+# Order Item #
+##############
+
+
+class OrderCreate(BaseModel):
+    full_name: str
+    telephone: str
+    items: list[OrderItemCreate]
+
+
+class OrderUpdate(OrderCreate):
+    id: int
+    paid: Optional[bool]
+    delivered: Optional[bool]
+    returned: Optional[bool]
+    items: list[OrderItemUpdate]
+
+
+class OrderResponse(OrderUpdate):
+    items: list[OrderItemResponse]
+    created_at: datetime = None
+    updated_at: datetime = None
+
+    class Config:
+        from_attributes = True
 
 
 ########
 # User #
 ########
+
+
 class UserCreate(BaseModel):
     email: EmailStr
     password: str
     is_staff: bool
+    is_superuser: Optional[bool]
 
 
 class UserUpdate(UserCreate):
@@ -125,14 +188,24 @@ class UserUpdate(UserCreate):
 
 
 class UserResponse(UserUpdate):
-    is_superuser: bool
     created_at: datetime = None
     updated_at: datetime = None
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
-class UserPrivileges(BaseModel):
-    email: EmailStr
-    is_superuser: bool
+#########
+# Token #
+#########
+
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+
+
+class TokenPayload(BaseModel):
+    user_id: Optional[int] = None
+    email: Optional[str] = None
+    exp: Optional[int] = None

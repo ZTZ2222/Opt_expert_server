@@ -1,7 +1,6 @@
 import secrets
 from typing import Any, Optional
-from pydantic import AnyUrl, validator
-from pydantic.v1 import BaseSettings
+from pydantic.v1 import AnyUrl, BaseSettings, validator
 
 
 class PostgresDsn(AnyUrl):
@@ -11,11 +10,11 @@ class PostgresDsn(AnyUrl):
 
 
 class Settings(BaseSettings):
-    POSTGRES_SERVER: str
-    POSTGRES_USERNAME: str
-    POSTGRES_PASSWORD: str
-    POSTGRES_PORT: str
-    POSTGRES_DB: str
+    POSTGRES_SERVER: str = "0.0.0.0"
+    POSTGRES_USERNAME: str = "postgres"
+    POSTGRES_PASSWORD: str = "postgres"
+    POSTGRES_PORT: str = "5432"
+    POSTGRES_DB: str = "postgres"
 
     SQLALCHEMY_DATABASE_URI: Optional[PostgresDsn] = None
 
@@ -25,7 +24,7 @@ class Settings(BaseSettings):
             return v
         return PostgresDsn.build(
             scheme="postgresql+asyncpg",
-            username=values.get("POSTGRES_USERNAME"),
+            user=values.get("POSTGRES_USERNAME"),
             password=values.get("POSTGRES_PASSWORD"),
             host=values.get("POSTGRES_SERVER"),
             port=values.get("POSTGRES_PORT"),
@@ -37,7 +36,7 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7
 
     class Config:
-        evn_file = ".env"
+        env_file = ".env"
 
 
 settings = Settings()

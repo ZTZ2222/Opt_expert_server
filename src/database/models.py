@@ -1,4 +1,4 @@
-from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, Numeric, String, Text, func
+from sqlalchemy import Boolean, Column, DateTime, Float, ForeignKey, Integer, Numeric, String, Text, func
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 
@@ -75,3 +75,28 @@ class User(BaseModel):
     password = Column(String, nullable=False)
     is_staff = Column(Boolean, server_default="False")
     is_superuser = Column(Boolean, server_default="False")
+
+
+class Order(BaseModel):
+    __tablename__ = "orders"
+
+    full_name = Column(String, nullable=False)
+    telephone = Column(String, nullable=False)
+    paid = Column(Boolean, default=False)
+    delivered = Column(Boolean, default=False)
+    returned = Column(Boolean, default=False)
+
+    items = relationship('OrderItem', back_populates="order")
+
+
+class OrderItem(BaseModel):
+    __tablename__ = "order_items"
+
+    order_id = Column(Integer, ForeignKey("orders.id"))
+    product_id = Column(Integer, ForeignKey("products.id"))
+    size = Column(String, nullable=False)
+    quantity = Column(Integer, nullable=False)
+    price = Column(Float, nullable=False)
+
+    order = relationship("Order", back_populates="items")
+    product = relationship("Product")
