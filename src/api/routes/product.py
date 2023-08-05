@@ -36,17 +36,23 @@ async def update_product(product: schemas.ProductUpdate, product_service: Produc
             status_code=status.HTTP_404_NOT_FOUND,
             detail=str(error.orig).split("\n")[-1].replace("DETAIL:  ", "")
         )
+
+    except AttributeError as error:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Product not found")
+
     return result
 
 
 @router.delete("/delete", status_code=status.HTTP_200_OK, dependencies=[Depends(staff_only)])
-async def delete_product(product: schemas.ProductUpdate, product_service: ProductService = Depends(get_product_service)):
+async def delete_product(product: schemas.ProductDelete, product_service: ProductService = Depends(get_product_service)):
 
-    deleted_product = await product_service.delete_product(product.id)
-    if not deleted_product:
+    try:
+        await product_service.delete_product(product.id)
+    except:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                             detail="Product has been not found")
-    return {"detail": f"Product with id: {deleted_product.id} has been successfully deleted"}
+    return {"detail": f"Product with id: {product.id} has been successfully deleted"}
 
 
 @router.get("/{id}", response_model=schemas.ProductResponse, status_code=status.HTTP_200_OK)

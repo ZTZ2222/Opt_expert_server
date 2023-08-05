@@ -54,7 +54,7 @@ class ContentService(Base):
     model = models.Content
 
     async def create_content(self, content: schemas.ContentCreate) -> models.Content:
-        return await self._insert(**content.model_dump(exclude_unset=True, exclude_none=True))
+        return await self._insert(**content.dict(exclude_unset=True, exclude_none=True))
 
     async def get_content_by_id(self, id: int) -> models.Content:
         return await self._select_one(models.Content.id == id)
@@ -66,7 +66,7 @@ class ContentService(Base):
         return await self._select_all()
 
     async def update_content(self, content: schemas.ContentUpdate) -> models.Content:
-        content_data = content.model_dump(
+        content_data = content.dict(
             exclude_unset=True, exclude_none=True)
         return await self._update(models.Content.id == content.id, **content_data)
 
@@ -78,7 +78,7 @@ class CategoryService(Base):
     model = models.Category
 
     async def create_category(self, category: schemas.CategoryCreate) -> models.Category:
-        return await self._insert(**category.model_dump(exclude_unset=True, exclude_none=True))
+        return await self._insert(**category.dict(exclude_unset=True, exclude_none=True))
 
     async def get_category_by_id(self, id: int) -> models.Category:
         return await self._select_one(models.Category.id == id)
@@ -94,7 +94,7 @@ class CategoryService(Base):
         return await self._select_all()
 
     async def update_category(self, category: schemas.CategoryUpdate) -> models.Category:
-        category_data = category.model_dump(
+        category_data = category.dict(
             exclude_unset=True, exclude_none=True)
         return await self._update(models.Category.id == category.id, **category_data)
 
@@ -113,15 +113,14 @@ class SubService(Base):
     model = models.Sub
 
     async def create_sub(self, sub: schemas.SubCreate) -> models.Sub:
-        return await self._insert(**sub.model_dump(exclude_unset=True, exclude_none=True))
+        return await self._insert(**sub.dict(exclude_unset=True, exclude_none=True))
 
     async def get_sub_by_id(self, id: int) -> models.Sub:
         return await self._select_one(models.Sub.id == id)
 
     async def get_sub_by_name(self, sub_name: str) -> models.Sub:
         async with self.session as session:
-            stmt = select(models.Sub).where(
-                models.Sub.name == sub_name)
+            stmt = select(models.Sub).where(models.Sub.name == sub_name)
             result = await session.scalar(stmt)
         return result
 
@@ -129,7 +128,7 @@ class SubService(Base):
         return await self._select_all()
 
     async def update_sub(self, sub: schemas.CategoryUpdate) -> models.Sub:
-        sub_data = sub.model_dump(
+        sub_data = sub.dict(
             exclude_unset=True, exclude_none=True)
         return await self._update(models.Sub.id == sub.id, **sub_data)
 
@@ -148,14 +147,16 @@ class ProductService(Base):
     model = models.Product
 
     async def create_product(self, product: schemas.ProductCreate) -> models.Product:
-        product_insert = await self._insert(**product.model_dump(exclude_unset=True, exclude_none=True, exclude={"inventory"}))
+        product_insert = await self._insert(**product.dict(exclude_unset=True, exclude_none=True, exclude={"inventory"}))
 
-        inventory = product.model_dump(
-            exclude_unset=True, exclude_none=True).pop("inventory")
-        inventory["product_id"] = product_insert.id
         async with self.session as session:
-            stmt = insert(models.Inventory).values(**inventory)
-            await session.execute(stmt)
+            for inventory_item in product.inventory:
+                inventory_item.product_id = product_insert.id
+
+                stmt = insert(models.Inventory).values(
+                    **inventory_item.dict(exclude_unset=True, exclude_none=True))
+                await session.execute(stmt)
+
             await session.commit()
 
         return await self.get_product_by_id(id=product_insert.id)
@@ -182,13 +183,31 @@ class ProductService(Base):
         return result
 
     async def update_product(self, product: schemas.ProductUpdate) -> models.Product:
-        product_data = product.model_dump(
-            exclude_unset=True, exclude_none=True)
+        product_data = product.dict(
+            exclude_unset=True, exclude_none=True, exclude={"inventory"})
         updated_product = await self._update(models.Product.id == product.id, **product_data)
+
+        async with self.session as session:
+            for inventory_item in product.inventory:
+                stmt = update(models.Inventory).where(
+                    and_(
+                        models.Inventory.product_id == updated_product.id,
+                        models.Inventory.size == inventory_item.size
+                    )
+                ).values(**inventory_item.dict(exclude_unset=True, exclude_none=True))
+                await session.execute(stmt)
+            await session.commit()
+
         return await self.get_product_by_id(id=updated_product.id)
 
-    async def delete_product(self, id: int) -> models.Product:
-        return await self._delete(models.Product.id == id)
+    async def delete_product(self, product_id: int) -> None:
+        async with self.session as session:
+            # Delete the inventory records related to the product
+            await session.execute(delete(models.Inventory).where(models.Inventory.product_id == product_id))
+
+            # Delete the product
+            await session.execute(delete(models.Product).where(models.Product.id == product_id))
+            await session.commit()
 
     async def get_all_products(self, offset: int, limit: int) -> Sequence[models.Product]:
         async with self.session as session:
@@ -207,11 +226,11 @@ class UserService(Base):
 
     async def create_user(self, user: schemas.UserCreate) -> models.User:
         user.password = self._password_hasher.hash(user.password)
-        return await self._insert(**user.model_dump(exclude_unset=True, exclude_none=True))
+        return await self._insert(**user.dict(exclude_unset=True, exclude_none=True))
 
     async def update_user(self, user: schemas.UserUpdate) -> models.User:
-        user.password = user.password
-        return await self._update(models.User.id == user.id, **user.model_dump(exclude_unset=True, exclude_none=True))
+        user.password = self._password_hasher.hash(user.password)
+        return await self._update(models.User.id == user.id, **user.dict(exclude_unset=True, exclude_none=True))
 
     async def get_user_by_email(self, email: str) -> models.User:
         return await self._select_one(models.User.email == email)
@@ -235,8 +254,8 @@ class OrderService(Base):
     model = models.Order
 
     async def create_order(self, order: schemas.OrderCreate) -> models.Order:
-        new_order = await self._insert(**order.model_dump(exclude_unset=True, exclude_none=True, exclude={"items"}))
-        items = order.model_dump(
+        new_order = await self._insert(**order.dict(exclude_unset=True, exclude_none=True, exclude={"items"}))
+        items = order.dict(
             exclude_unset=True, exclude_none=True).get("items")
 
         for item in items:
@@ -262,10 +281,9 @@ class OrderService(Base):
         return result
 
     async def return_order(self, order: schemas.OrderUpdate) -> models.Order:
-        order_data = order.model_dump(
+        order_data = order.dict(
             exclude_unset=True, exclude_none=True, exclude={"items"})
-        items = order.model_dump(
-            exclude_unset=True, exclude_none=True).get("items")
+        items = order.dict(exclude_unset=True, exclude_none=True).get("items")
 
         for item in items:
             async with self.session as session:
@@ -280,10 +298,25 @@ class OrderService(Base):
         return await self.get_order_by_id(id=updated_order.id)
 
     async def update_order_info(self, order: schemas.OrderUpdate) -> models.Order:
-        order_data = order.model_dump(
-            exclude_unset=True, exclude_none=True, exclude={"items"})
-        updated_order = await self._update(models.Order.id == order.id, **order_data)
-        return await self.get_order_by_id(id=updated_order.id)
+        async with self.session as session:
+            for order_item in order.items:
+                stmt = update(models.OrderItem).where(
+                    and_(
+                        models.OrderItem.order_id == order.id,
+                        models.OrderItem.size == order_item.size
+                    )
+                ).values(**order_item.dict(exclude_unset=True, exclude_none=True))
+                await session.execute(stmt)
+                await session.commit()
+
+            order_data = order.dict(
+                exclude_unset=True, exclude_none=True, exclude={"items"})
+            stmt = update(models.Order).where(
+                models.Order.id == order.id).values(**order_data)
+            await session.execute(stmt)
+            await session.commit()
+
+        return await self.get_order_by_id(id=order.id)
 
     async def get_customer_orders(self, phone_numb: str) -> Sequence[models.Order]:
         async with self.session as session:

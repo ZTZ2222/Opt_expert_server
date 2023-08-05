@@ -1,6 +1,6 @@
 import secrets
 from typing import Any, Optional
-from pydantic.v1 import AnyUrl, BaseSettings, validator
+from pydantic import AnyUrl, BaseSettings, validator
 
 
 class PostgresDsn(AnyUrl):

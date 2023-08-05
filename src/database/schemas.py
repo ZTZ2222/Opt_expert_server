@@ -21,7 +21,7 @@ class ContentResponse(ContentUpdate):
     updated_at: datetime = None
 
     class Config:
-        from_attributes = True
+        orm_mode = True
 
 
 ############
@@ -42,7 +42,7 @@ class CategoryResponse(CategoryUpdate):
     updated_at: datetime = None
 
     class Config:
-        from_attributes = True
+        orm_mode = True
 
 
 #######
@@ -63,7 +63,7 @@ class SubResponse(SubUpdate):
     updated_at: datetime = None
 
     class Config:
-        from_attributes = True
+        orm_mode = True
 
 
 #############
@@ -83,7 +83,7 @@ class InventoryResponse(BaseModel):
     quantity: int
 
     class Config:
-        from_attributes = True
+        orm_mode = True
 
 
 ###########
@@ -97,17 +97,19 @@ class ProductCreate(BaseModel):
     base_price: int
     sale_price: Optional[int]
     description: Optional[str]
-    weight: Optional[str]
+    weight: Optional[int]
     product_origin: Optional[str]
     category_id: int
     sub_id: int
-    inventory: InventoryDTO
+    inventory: list[InventoryDTO]
 
 
 class ProductUpdate(ProductCreate):
     id: int
-    category_id: Optional[int]
-    inventory: Optional[InventoryDTO]
+
+
+class ProductDelete(BaseModel):
+    id: int
 
 
 class ProductResponse(ProductUpdate):
@@ -116,7 +118,7 @@ class ProductResponse(ProductUpdate):
     updated_at: datetime = None
 
     class Config:
-        from_attributes = True
+        orm_mode = True
 
 
 ##############
@@ -140,12 +142,12 @@ class OrderItemResponse(OrderItemUpdate):
     updated_at: datetime = None
 
     class Config:
-        from_attributes = True
+        orm_mode = True
 
 
-##############
-# Order Item #
-##############
+#########
+# Order #
+#########
 
 
 class OrderCreate(BaseModel):
@@ -168,7 +170,7 @@ class OrderResponse(OrderUpdate):
     updated_at: datetime = None
 
     class Config:
-        from_attributes = True
+        orm_mode = True
 
 
 ########
@@ -178,21 +180,22 @@ class OrderResponse(OrderUpdate):
 
 class UserCreate(BaseModel):
     email: EmailStr
-    password: str
-    is_staff: bool
+    password: Optional[str]
+    is_staff: Optional[bool]
     is_superuser: Optional[bool]
 
 
 class UserUpdate(UserCreate):
-    id: int
+    id: Optional[int]
 
 
-class UserResponse(UserUpdate):
+class UserResponse(BaseModel):
+    email: EmailStr
     created_at: datetime = None
     updated_at: datetime = None
 
     class Config:
-        from_attributes = True
+        orm_mode = True
 
 
 #########
