@@ -1,5 +1,6 @@
 from typing import Sequence
 from fastapi import APIRouter, Depends, HTTPException, Response, status
+from slugify import slugify
 
 from src.api.dependencies import get_category_service
 from src.database.services import CategoryService
@@ -16,7 +17,7 @@ router = APIRouter(
 @router.post("/create", response_model=schemas.CategoryResponse, status_code=status.HTTP_201_CREATED, dependencies=[Depends(staff_only)])
 async def create_new_category(category: schemas.CategoryCreate, category_service: CategoryService = Depends(get_category_service)):
 
-    category_exists = await category_service.get_category_by_name(category_name=category.name)
+    category_exists = await category_service.get_category_by_slug(category_slug=slugify(category.name))
     if category_exists:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT,
                             detail="This category name is already registered.")
@@ -38,28 +39,35 @@ async def category_update(category: schemas.CategoryUpdate, category_service: Ca
     return updated_category
 
 
-@router.delete("/delete", response_model=schemas.CategoryResponse, status_code=status.HTTP_200_OK, dependencies=[Depends(staff_only)])
-async def category_delete(category: schemas.CategoryUpdate, category_service: CategoryService = Depends(get_category_service)):
+@router.delete("/delete/{id}", response_model=schemas.CategoryResponse, status_code=status.HTTP_200_OK, dependencies=[Depends(staff_only)])
+async def category_delete(id: int, category_service: CategoryService = Depends(get_category_service)):
 
-    category_db = await category_service.get_category_by_id(id=category.id)
+    category_db = await category_service.get_category_by_id(id=id)
 
     if not category_db:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail=f"Category with id: {category.id} does not exist")
+                            detail=f"Category with id: {id} does not exist")
 
-    deleted_category = await category_service.delete_category(id=category.id)
+    await category_service.delete_category(id=id)
 
-    return Response(status_code=status.HTTP_200_OK, content=f"Category with id: {deleted_category.id} has been deleted")
+    return Response(status_code=status.HTTP_200_OK)
 
 
-@router.get("/{id}", response_model=list[schemas.ProductResponse], status_code=status.HTTP_200_OK)
-async def fetch_category_products(id: int, offset: int = 0, limit: int = 20, category_service: CategoryService = Depends(get_category_service)):
+@router.get("/{category_slug}", response_model=list[schemas.ProductResponse], status_code=status.HTTP_200_OK)
+async def fetch_category_products(category_slug: str, offset: int = 0, limit: int = 20, category_service: CategoryService = Depends(get_category_service)):
 
-    category_products = await category_service.get_category_products(category_id=id, offset=offset, limit=limit)
+    category = await category_service.get_category_by_slug(category_slug=category_slug)
+
+    if not category:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Category does not exist"
+        )
+
+    category_products = await category_service.get_category_products(category_id=category.id, offset=offset, limit=limit)
 
     if not category_products:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail=f"Products of Category id: {id} do not exist")
+        return []
 
     return category_products
 

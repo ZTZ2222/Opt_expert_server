@@ -56,7 +56,6 @@ async def user_delete(user_credentials: schemas.UserUpdate, user_service: UserSe
 async def users_get_all(user_service: UserService = Depends(get_user_service)):
 
     users = await user_service.get_all_users()
-    print([u.as_dict() for u in users])
 
     if not users:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,

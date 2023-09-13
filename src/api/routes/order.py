@@ -74,3 +74,13 @@ async def get_order(order_id: int, order_service: OrderService = Depends(get_ord
                             detail=f"Order id: {order_id} doesn't exist.")
 
     return order
+
+
+@router.delete("/delete/{id}", status_code=status.HTTP_200_OK, dependencies=[Depends(staff_only)])
+async def update_order_info(id: int, order_service: OrderService = Depends(get_order_service)):
+    try:
+        await order_service.delete_order(id)
+    except:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                            detail="Order has been not found")
+    return {"detail": f"Order with id: {id} has been successfully deleted"}

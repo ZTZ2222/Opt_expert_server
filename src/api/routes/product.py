@@ -44,21 +44,21 @@ async def update_product(product: schemas.ProductUpdate, product_service: Produc
     return result
 
 
-@router.delete("/delete", status_code=status.HTTP_200_OK, dependencies=[Depends(staff_only)])
-async def delete_product(product: schemas.ProductDelete, product_service: ProductService = Depends(get_product_service)):
+@router.delete("/delete/{id}", status_code=status.HTTP_200_OK, dependencies=[Depends(staff_only)])
+async def delete_product(id: int, product_service: ProductService = Depends(get_product_service)):
 
     try:
-        await product_service.delete_product(product.id)
+        await product_service.delete_product(id)
     except:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                             detail="Product has been not found")
-    return {"detail": f"Product with id: {product.id} has been successfully deleted"}
+    return {"detail": f"Product with id: {id} has been successfully deleted"}
 
 
-@router.get("/{id}", response_model=schemas.ProductResponse, status_code=status.HTTP_200_OK)
-async def get_product(id: int, product_service: ProductService = Depends(get_product_service)):
+@router.get("/{product_slug}", response_model=schemas.ProductResponse, status_code=status.HTTP_200_OK)
+async def get_product(product_slug: str, product_service: ProductService = Depends(get_product_service)):
 
-    result = await product_service.get_product_by_id(id=id)
+    result = await product_service.get_product_by_slug(slug=product_slug)
 
     if not result:
         raise HTTPException(
@@ -69,9 +69,14 @@ async def get_product(id: int, product_service: ProductService = Depends(get_pro
 
 
 @router.get("", response_model=Sequence[schemas.ProductResponse], status_code=status.HTTP_200_OK)
-async def get_all_products(offset: int = 0, limit: int = 20, product_service: ProductService = Depends(get_product_service)):
+async def get_all_products(
+    offset: int = 0,
+    limit: int = 20,
+    search: str = None,
+    product_service: ProductService = Depends(get_product_service)
+):
 
-    result = await product_service.get_all_products(offset=offset, limit=limit)
+    result = await product_service.get_all_products(offset=offset, limit=limit, search_query=search)
 
     if not result:
         raise HTTPException(

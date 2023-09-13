@@ -39,15 +39,15 @@ async def sub_update(sub: schemas.SubUpdate, sub_service: SubService = Depends(g
 
 
 @router.delete("/delete", response_model=schemas.SubResponse, status_code=status.HTTP_200_OK, dependencies=[Depends(staff_only)])
-async def sub_delete(sub: schemas.SubUpdate, sub_service: SubService = Depends(get_sub_service)):
+async def sub_delete(id: int, sub_service: SubService = Depends(get_sub_service)):
 
-    sub_db = await sub_service.get_sub_by_id(id=sub.id)
+    sub_db = await sub_service.get_sub_by_id(id=id)
 
     if not sub_db:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail=f"Sub with id: {sub.id} does not exist")
+                            detail=f"Sub with id: {id} does not exist")
 
-    deleted_sub = await sub_service.delete_sub(id=sub.id)
+    deleted_sub = await sub_service.delete_sub(id=id)
 
     return Response(status_code=status.HTTP_200_OK, content=f"Subcategory with id: {deleted_sub.id} has been deleted")
 

@@ -1,3 +1,5 @@
+import base64
+import uuid
 from passlib.context import CryptContext
 from datetime import datetime, timedelta
 from typing import Any
@@ -55,3 +57,81 @@ async def get_current_user(token: str = Depends(reusable_oauth2), session: Async
     async with session:
         user = await session.scalar(select(models.User).filter(models.User.email == token_verified.email))
     return user
+
+
+def upload_product_images(images: list[str]) -> list[str]:
+    image_urls = []
+
+    for image_data in images:
+        # Extract the file extension from the base64 image data
+        file_extension = '.' + image_data.split('/')[1].split(';')[0]
+
+       # Generate a unique filename using UUID
+        unique_id = str(uuid.uuid4())
+        dynamic_filename = f"productImage_{unique_id}{file_extension}"
+
+        # Decode the base64 image data
+        image_data = image_data.split(',')[1]
+        image_bytes = base64.b64decode(image_data)
+
+        # Specify the save path on your system
+        save_path = f"/home/ztz/Desktop/MyProjects/2023/opt_expert/frontend/public/ProductImages/{dynamic_filename}"
+
+        # Save the image to the specified path
+        with open(save_path, 'wb') as f:
+            f.write(image_bytes)
+
+        # Store the generated image filename
+        image_urls.append(f"/ProductImages/{dynamic_filename}")
+
+    return image_urls
+
+
+def upload_category_image(image_base64: str) -> str:
+    # Extract the file extension from the base64 image data
+    file_extension = '.' + image_base64.split('/')[1].split(';')[0]
+
+    # Generate a unique filename using UUID
+    unique_id = str(uuid.uuid4())
+    dynamic_filename = f"categoryImage_{unique_id}{file_extension}"
+
+    # Decode the base64 image data
+    image_base64 = image_base64.split(',')[1]
+    image = base64.b64decode(image_base64)
+
+    # Specify the save path on your system
+    save_path = f"/home/ztz/Desktop/MyProjects/2023/opt_expert/frontend/public/CategoryImages/{dynamic_filename}"
+
+    # Save the image to the specified path
+    with open(save_path, 'wb') as f:
+        f.write(image)
+
+    # Store the generated image filename
+    image_url = f"/CategoryImages/{dynamic_filename}"
+
+    return image_url
+
+
+def upload_content_image(image_base64: str) -> str:
+    # Extract the file extension from the base64 image data
+    file_extension = '.' + image_base64.split('/')[1].split(';')[0]
+
+    # Generate a unique filename using UUID
+    unique_id = str(uuid.uuid4())
+    dynamic_filename = f"contentImage_{unique_id}{file_extension}"
+
+    # Decode the base64 image data
+    image_base64 = image_base64.split(',')[1]
+    image = base64.b64decode(image_base64)
+
+    # Specify the save path on your system
+    save_path = f"/home/ztz/Desktop/MyProjects/2023/opt_expert/frontend/public/ContentImages/{dynamic_filename}"
+
+    # Save the image to the specified path
+    with open(save_path, 'wb') as f:
+        f.write(image)
+
+    # Store the generated image filename
+    image_url = f"/ContentImages/{dynamic_filename}"
+
+    return image_url
