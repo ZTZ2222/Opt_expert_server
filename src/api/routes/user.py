@@ -12,6 +12,17 @@ router = APIRouter(
 )
 
 
+@router.post("/register/superuser", response_model=schemas.UserResponse, status_code=status.HTTP_201_CREATED)
+async def create_new_superuser(user_credentials: schemas.UserCreate, user_service: UserService = Depends(get_user_service)):
+
+    user_exists = await user_service.get_user_by_email(email=user_credentials.email)
+    if user_exists:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT,
+                            detail="This email address is already registered.")
+    new_user = await user_service.create_user(user_credentials)
+    return new_user
+
+
 @router.post("/register", response_model=schemas.UserResponse, status_code=status.HTTP_201_CREATED, dependencies=[Depends(admin_only)])
 async def create_new_user(user_credentials: schemas.UserCreate, user_service: UserService = Depends(get_user_service)):
 

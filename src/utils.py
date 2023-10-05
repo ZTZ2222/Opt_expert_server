@@ -76,7 +76,7 @@ def upload_product_images(images: list[str]) -> list[str]:
         image_bytes = base64.b64decode(image_data)
 
         # Specify the directory where you want to save the image
-        directory = "media/ProductImages"
+        directory = f"{os.getenv('MEDIA_URL')}/ProductImages"
 
         # Create the directory if it doesn't exist
         if not os.path.exists(directory):
@@ -91,7 +91,7 @@ def upload_product_images(images: list[str]) -> list[str]:
 
         # Store the generated image filename
         image_urls.append(
-            f"{os.getenv('MEDIA_URL')}media/ProductImages/{dynamic_filename}")
+            f"{os.getenv('MEDIA_URL')}/ProductImages/{dynamic_filename}")
 
     return image_urls
 
@@ -109,7 +109,7 @@ def upload_category_image(image_base64: str) -> str:
     image = base64.b64decode(image_base64)
 
     # Specify the directory where you want to save the image
-    directory = "media/CategoryImages"
+    directory = f"{os.getenv('MEDIA_URL')}/CategoryImages"
 
     # Create the directory if it doesn't exist
     if not os.path.exists(directory):
@@ -123,7 +123,7 @@ def upload_category_image(image_base64: str) -> str:
         f.write(image)
 
     # Store the generated image filename
-    image_url = f"{os.getenv('MEDIA_URL')}media/CategoryImages/{dynamic_filename}"
+    image_url = f"{os.getenv('MEDIA_URL')}/CategoryImages/{dynamic_filename}"
 
     return image_url
 
@@ -141,7 +141,7 @@ def upload_content_image(image_base64: str) -> str:
     image = base64.b64decode(image_base64)
 
     # Specify the directory where you want to save the image
-    directory = "media/ContentImages"
+    directory = f"{os.getenv('MEDIA_URL')}/ContentImages"
 
     # Create the directory if it doesn't exist
     if not os.path.exists(directory):
@@ -155,6 +155,6 @@ def upload_content_image(image_base64: str) -> str:
         f.write(image)
 
     # Store the generated image filename
-    image_url = f"{os.getenv('MEDIA_URL')}media/ContentImages/{dynamic_filename}"
+    image_url = f"{os.getenv('MEDIA_URL')}/ContentImages/{dynamic_filename}"
 
     return image_url

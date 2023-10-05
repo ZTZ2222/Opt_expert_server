@@ -1,0 +1,30 @@
+version: '3'
+services:
+  backend:
+    build: .
+    command: ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000"]
+    volumes:
+      - ./media:/project/media
+    env_file:
+      - .env
+    ports:
+      - "8000:8000"
+    depends_on:
+      - postgresql-db
+    restart: always
+
+  # frontend:
+  #   build:
+  #     context: ./frontend
+  #   ports:
+  #     - "3000:3000"
+
+  postgresql-db:
+    image: postgres:15-alpine
+    env_file:
+      - ./postgres-config/.pg-env
+    volumes:
+      - ./postgres-config/database_volume:/var/lib/postgresql/data
+    restart: always
+    expose:
+      - 5432
