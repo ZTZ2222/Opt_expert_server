@@ -1,6 +1,7 @@
 import base64
 import os
 import uuid
+from dotenv import load_dotenv
 from passlib.context import CryptContext
 from datetime import datetime, timedelta
 from typing import Any
@@ -14,6 +15,8 @@ from .config import settings
 from .database import schemas
 from .database.database import db
 from .database import models
+
+load_dotenv()
 
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
